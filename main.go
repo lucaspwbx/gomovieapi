@@ -18,64 +18,83 @@ type Actor struct {
 	Age  int
 }
 
+type Context struct {
+	SessionWrapper SessionWrapper
+	Collections    map[string]*mgo.Collection
+}
+
+type SessionWrapper struct {
+	Session *mgo.Session
+}
+
+func (sw *SessionWrapper) getCollections() map[string]*mgo.Collection {
+	m := make(map[string]*mgo.Collection)
+	m["actors"] = sw.Session.DB("locadora").C("actors")
+	m["movies"] = sw.Session.DB("locadora").C("movies")
+	return m
+}
+
 func main() {
-	session, err := connect()
+	context, err := getContext()
 	if err != nil {
 		panic(err)
 	}
-	defer session.Close()
+	defer context.SessionWrapper.Session.Close()
 
-	c := session.DB("locadora").C("actors")
-	err = c.Insert(&Actor{"Lucas", 29})
-	if err != nil {
-		fmt.Println("Erro ao inserir")
-	}
-	fmt.Println("Inserido com sucesso")
-
-	result := Actor{}
-	err = c.Find(bson.M{"name": "Lucas"}).One(&result)
-	if err != nil {
-		fmt.Println("Erro ao requisitar actor")
-	}
-	fmt.Println("Name: ", result.Name)
-
-	err = c.Insert(&Actor{"Joao", 50})
-	if err != nil {
-		fmt.Println("Erro ao inserir")
-	}
-	fmt.Println("Inserido com sucesso")
-
-	err = c.Remove(bson.M{"name": "Joao"})
-	if err != nil {
-		fmt.Println("Erro ao remover")
-	}
-
-	result2 := Actor{}
-	err = c.Find(bson.M{"name": "Joao"}).One(&result2)
-	if err != nil {
-		fmt.Println("Erro ao requisitar actor")
-	}
-
-	err = insertActor("John", 39, c)
+	err = insertActor("Paura", 50, context)
 	if err != nil {
 		fmt.Println("Erro ao inserir novo ator")
 	}
+
+	actor, err := getActor("Paura", context)
+	if err != nil {
+		fmt.Println("Nao encontrou ninguem com o nome Paura")
+	}
+	fmt.Printf("Actor tem o nome %s\n", actor.Name)
+
+	err = deleteActor("Paura", context)
+	if err != nil {
+		fmt.Println("Erro ao deletar registro")
+		return
+	}
+	fmt.Println("Deletou registro")
 }
 
-func insertActor(name string, age int, c *mgo.Collection) error {
-	actor := Actor{name, age}
-	err := c.Insert(actor)
+func getActor(name string, context *Context) (*Actor, error) {
+	actor := Actor{}
+	err := context.Collections["actors"].Find(bson.M{"name": name}).One(&actor)
+	if err != nil {
+		return nil, err
+	}
+	return &actor, nil
+}
+
+func deleteActor(name string, context *Context) error {
+	err := context.Collections["actors"].Remove(bson.M{"name": name})
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func connect() (*mgo.Session, error) {
+func insertActor(name string, age int, context *Context) error {
+	actor := Actor{name, age}
+	err := context.Collections["actors"].Insert(actor)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getContext() (*Context, error) {
 	session, err := mgo.Dial("localhost:27017")
 	if err != nil {
 		return nil, err
 	}
 	session.SetMode(mgo.Monotonic, true)
-	return session, nil
+	sw := SessionWrapper{session}
+	collection := sw.getCollections()
+
+	context := Context{sw, collection}
+	return &context, nil
 }
