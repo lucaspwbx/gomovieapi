@@ -43,21 +43,33 @@ func main() {
 
 	err = insertActor("Paura", 50, context)
 	if err != nil {
-		fmt.Println("Erro ao inserir novo ator")
+		fmt.Println("Error inserting new actor")
+		return
 	}
 
 	actor, err := getActor("Paura", context)
 	if err != nil {
-		fmt.Println("Nao encontrou ninguem com o nome Paura")
+		fmt.Println("Error getting actor")
+		return
 	}
-	fmt.Printf("Actor tem o nome %s\n", actor.Name)
+	fmt.Printf("Actor has name %s\n", actor.Name)
 
 	err = deleteActor("Paura", context)
 	if err != nil {
-		fmt.Println("Erro ao deletar registro")
+		fmt.Println("Error deleting actor")
 		return
 	}
-	fmt.Println("Deletou registro")
+	fmt.Println("Deleted successfully")
+
+	err = insertActor("Joao", 36, context)
+	if err != nil {
+		fmt.Println("Error inserting new actor")
+	}
+
+	err = updateActor("Joao", "Lucas", context)
+	if err != nil {
+		fmt.Println("Error updating actor")
+	}
 }
 
 func getActor(name string, context *Context) (*Actor, error) {
@@ -80,6 +92,15 @@ func deleteActor(name string, context *Context) error {
 func insertActor(name string, age int, context *Context) error {
 	actor := Actor{name, age}
 	err := context.Collections["actors"].Insert(actor)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func updateActor(name string, newName string, context *Context) error {
+	actor := Actor{newName, 90}
+	err := context.Collections["actors"].Update(bson.M{"name": name}, actor)
 	if err != nil {
 		return err
 	}
