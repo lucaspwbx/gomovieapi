@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/lucasweiblen/gomovieapi/db"
+	"github.com/lucasweiblen/gomovieapi/models"
 )
 
 func main() {
@@ -13,33 +14,31 @@ func main() {
 	}
 	defer context.SessionWrapper.Session.Close()
 
-	err = db.InsertActor("Paura", 50, context)
+	newActor := models.Actor{"Lennon", 29}
+	err = db.Insert(newActor, context)
 	if err != nil {
-		fmt.Println("Error inserting new actor")
+		fmt.Printf("Error inserting %v", newActor)
 		return
 	}
+	fmt.Println("insertiu normalmente")
 
-	actor, err := db.GetActor("Paura", context)
+	newMovie := models.Movie{"Home Alone", 1998, []*models.Actor{&newActor}}
+
+	err = db.Insert(newMovie, context)
 	if err != nil {
-		fmt.Println("Error getting actor")
+		fmt.Printf("Error inserting %v", newMovie)
 		return
 	}
-	fmt.Printf("Actor has name %s\n", actor.Name)
+	fmt.Println("insertiu normalmente")
 
-	err = db.DeleteActor("Paura", context)
+	query := db.QueryParams{"actor", "name", "Lennon"}
+	result, err := db.Get(&query, context)
 	if err != nil {
-		fmt.Println("Error deleting actor")
+		fmt.Println("Erro")
 		return
 	}
-	fmt.Println("Deleted successfully")
-
-	err = db.InsertActor("Joao", 36, context)
-	if err != nil {
-		fmt.Println("Error inserting new actor")
-	}
-
-	err = db.UpdateActor("Joao", "Lucas", context)
-	if err != nil {
-		fmt.Println("Error updating actor")
+	fmt.Println(result)
+	if _, ok := result.(models.Actor); ok {
+		fmt.Println("Eh um ator")
 	}
 }
