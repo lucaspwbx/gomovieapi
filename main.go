@@ -40,5 +40,11 @@ func main() {
 	fmt.Println(result)
 	if _, ok := result.(models.Actor); ok {
 		fmt.Println("Eh um ator")
+		err = db.Delete(result, context)
+		if err != nil {
+			fmt.Println("Error deleting")
+			return
+		}
+		fmt.Println("Deletado com sucesso")
 	}
 }

@@ -28,17 +28,15 @@ func (sw *SessionWrapper) getCollections() map[string]*mgo.Collection {
 	return m
 }
 
-func GetActor(name string, context *Context) (*models.Actor, error) {
-	actor := models.Actor{}
-	err := context.Colls["actors"].Find(bson.M{"name": name}).One(&actor)
-	if err != nil {
-		return nil, err
+func Delete(doc interface{}, cnt *Context) error {
+	var err error
+	if kind := checkType(doc); kind == "actor" {
+		err = cnt.Colls["actors"].Remove(doc)
+	} else if kind == "movie" {
+		err = cnt.Colls["movies"].Remove(doc)
+	} else {
+		return errors.New("no collection")
 	}
-	return &actor, nil
-}
-
-func DeleteActor(name string, context *Context) error {
-	err := context.Colls["actors"].Remove(bson.M{"name": name})
 	if err != nil {
 		return err
 	}
@@ -46,22 +44,25 @@ func DeleteActor(name string, context *Context) error {
 }
 
 func Get(q *QueryParams, cnt *Context) (interface{}, error) {
-	var err error
-	//`var result models.Actor
-	//ar result interface{}
 	if q.Kind == "actor" {
-		result := models.Actor{}
-		err = cnt.Colls["actors"].Find(bson.M{q.Attr: q.Value}).One(&result)
+		result := GetActor(q, cnt)
 		return result, nil
 	} else {
-		result := models.Movie{}
-		err = cnt.Colls["movies"].Find(bson.M{q.Attr: q.Value}).One(&result)
+		result := GetMovie(q, cnt)
 		return result, nil
 	}
-	if err != nil {
-		return nil, err
-	}
-	return "", nil
+}
+
+func GetActor(q *QueryParams, cnt *Context) models.Actor {
+	var result models.Actor
+	_ = cnt.Colls["actors"].Find(bson.M{q.Attr: q.Value}).One(&result)
+	return result
+}
+
+func GetMovie(q *QueryParams, cnt *Context) models.Actor {
+	var result models.Actor
+	_ = cnt.Colls["movies"].Find(bson.M{q.Attr: q.Value}).One(&result)
+	return result
 }
 
 func Insert(doc interface{}, cnt *Context) error {
@@ -102,15 +103,6 @@ func checkType(obj interface{}) string {
 		return "movie"
 	}
 	return ""
-}
-
-func UpdateActor(name string, newName string, context *Context) error {
-	actor := models.Actor{newName, 90}
-	err := context.Colls["actors"].Update(bson.M{"name": name}, actor)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func GetContext() (*Context, error) {
